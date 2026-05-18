@@ -1,0 +1,54 @@
+================================================================================
+UNI-REWARDS: COMPLETE PROJECT SUMMARY
+================================================================================
+
+PROJECT OVERVIEW
+--------------------------------------------------------------------------------
+UniRewards is a full-stack Point-Based Marketplace System built for universities. 
+It features a robust role-based access control (RBAC) system with three primary roles:
+1. Students: Can earn points, transfer points to peers, and bid on items in the marketplace.
+2. Professors: Can view students and allocate reward points to them based on performance using dynamic Allocation Rules.
+3. Admins: Have full control over the system, including approving users, editing points, adding marketplace products, managing allocation rules, and resolving auctions.
+
+TECHNOLOGY STACK
+--------------------------------------------------------------------------------
+- Frontend: Vanilla JavaScript, HTML5, CSS3. Served statically by the Node.js backend.
+- Backend: Node.js, Express.js.
+- Database & Auth: Hybrid architecture using Supabase (PostgreSQL) for users, products, and transactions, and Firebase (Firestore NoSQL) for allocation rules. Includes JWT authentication, Row Level Security (RLS), and PostgreSQL Stored Procedures (RPC).
+
+FILE STRUCTURE & FUNCTIONS
+--------------------------------------------------------------------------------
+FRONTEND (client/public/)
+- admin.html: Admin portal for managing users, products, allocation rules, and auctions.
+- dashboard.html: Student portal for viewing points and transaction history.
+- index.html: Authentication page (login/signup) and landing page.
+- marketplace.html: Marketplace for students to bid on products.
+- professor.html: Professor portal to view students and allocate points using rules.
+- css/style.css: Global styles, variables, and the custom Neon Glassmorphism UI.
+- js/api.js: Centralized wrapper for the native Fetch API, attaching Auth headers to every request.
+- js/auth.js: Centralized authentication, session management, and role-based redirect logic.
+- js/supabase-config.js: Supabase credentials and global client initialization.
+
+BACKEND (server/)
+- server.js: Entry point for the Express server. Configures middleware and serves static files from `client/public`.
+- middleware/auth.js: Middleware for verifying Supabase JWTs and enforcing role-based access control.
+- routes/api.js: Defines all API routing endpoints and attaches controllers.
+- controllers/admin.js: Logic for admins (users, products, resolving winners).
+- controllers/allocate.js: Logic for allocating points.
+- controllers/bid.js: Marketplace bidding logic via RPC.
+- controllers/products.js: Fetching products and winners.
+- controllers/professor.js: Professor-specific logic.
+- controllers/rules.js: CRUD operations for the Allocation Rules (connected to Firebase Firestore).
+- controllers/transfer.js: Peer-to-peer point transfers.
+
+DATABASE (server/db/)
+- migration.sql: Base schema for users, products, transactions, bids, and RLS policies.
+- add_profile_details_migration.sql: Adds profile metadata columns.
+- add_description_migration.sql: Adds descriptions to products.
+- firebase.js: Initializes the Firebase Admin SDK using the service account credentials.
+- run-migration.js: Documentation script explaining how to run migrations.
+- seed-admin.js: Utility to seed the initial master admin account.
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================

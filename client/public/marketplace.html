@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniRewards - Marketplace</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+        .small-icon {
+            width: 16px;
+            height: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+    <div class="app-container">
+        <main class="main-content animate-fade-in">
+            <div style="animation: fadeIn 0.5s ease-out">
+                <header style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h1 class="gradient-text" style="font-size: 2.5rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 12px;">
+                            <svg class="icon" style="width: 36px; height: 36px; color: var(--neon-primary);"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                            Marketplace
+                        </h1>
+                        <p style="color: var(--text-muted);">Browse exclusive university rewards and place your bids.</p>
+                    </div>
+                    <button id="refresh-btn" class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem;">
+                        ↻ Refresh
+                    </button>
+                </header>
+
+                <div id="loading-indicator" style="text-align: center; padding: 4rem; color: var(--text-muted);">
+                    Loading rewards...
+                </div>
+
+                <div id="empty-state" class="glass-panel" style="display: none; text-align: center; padding: 4rem;">
+                    <p style="color: var(--text-muted);">No products available at the moment.</p>
+                </div>
+
+                <div id="products-grid" style="display: none; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem;">
+                    <!-- Products will be injected here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let currentUserProfile = null;
+        let bidInterval;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUserProfile = await checkAuth();
+            if (!currentUserProfile) return;
+
+            loadProducts();
+            
+            // Refresh products every 10 seconds for real-time feel
+            bidInterval = setInterval(loadProducts, 10000);
+            
+            document.getElementById('refresh-btn').addEventListener('click', loadProducts);
+        });
+
+        async function loadProducts() {
+            try {
+                const res = await fetchAPI('/products');
+                
+                document.getElementById('loading-indicator').style.display = 'none';
+                
+                const grid = document.getElementById('products-grid');
+                const empty = document.getElementById('empty-state');
+                
+                if (res.success && res.products.length > 0) {
+                    grid.style.display = 'grid';
+                    empty.style.display = 'none';
+                    renderProducts(res.products);
+                } else {
+                    grid.style.display = 'none';
+                    empty.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Failed to load products:', err);
+                document.getElementById('loading-indicator').innerText = 'Failed to load rewards.';
+            }
+        }
+
+        function renderProducts(products) {
+            const grid = document.getElementById('products-grid');
+            
+            // We only want to update innerHTML completely if structure changed, but for simplicity we re-render
+            let html = '';
+            
+            products.forEach(product => {
+                const isStudentApproved = currentUserProfile?.role === 'student' && currentUserProfile?.status === 'approved';
+                const hasStarted = new Date() >= new Date(product.start_time);
+                const hasEnded = product.end_time && new Date() > new Date(product.end_time);
+                
+                let actionHtml = '';
+                
+                if (product.status === 'completed') {
+                    actionHtml = `<div style="padding: 10px; text-align: center; background: rgba(255,255,255,0.05); border-radius: 6px; color: var(--text-muted);">Bidding has ended.</div>`;
+                } else if (!hasStarted) {
+                    actionHtml = `<div style="padding: 10px; text-align: center; background: rgba(255,165,0,0.1); border-radius: 6px; color: orange;">Bidding has not started yet.</div>`;
+                } else if (hasEnded) {
+                    actionHtml = `<div style="padding: 10px; text-align: center; background: rgba(255,51,102,0.1); border-radius: 6px; color: var(--danger);">Bidding closed and Waiting for admin to declare winner.</div>`;
+                } else if (isStudentApproved) {
+                    actionHtml = `
+                        <form onsubmit="handleBidSubmit('${product.id}', event, ${product.highest_bid})" style="display: flex; gap: 0.5rem;">
+                            <input type="number" id="bid-input-${product.id}" class="input-field" placeholder=">${product.highest_bid}" style="padding: 8px 12px; min-width: 0;" min="${product.highest_bid + 1}">
+                            <button type="submit" id="bid-btn-${product.id}" class="btn-primary" style="padding: 8px 16px;">
+                                <svg class="icon small-icon"><path d="M14 13.5V16.5l-4-4 4-4v3z"/><path d="M10 9.5V6.5l4 4-4 4v-3z" transform="rotate(180 10 10.5)"/></svg> Bid
+                            </button>
+                        </form>
+                    `;
+                } else {
+                    const msg = currentUserProfile?.role === 'student' ? 'Account pending approval' : 'Only students can bid';
+                    actionHtml = `<div style="font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 6px;">${msg}</div>`;
+                }
+                
+                let statusMsg = '';
+                if (product.status === 'completed') {
+                    const winnerText = product.winner_id === currentUserProfile?.id ? '(You Won!)' : '';
+                    statusMsg = `<span style="color: var(--neon-secondary); font-weight: bold; margin-top: 5px;">🎯 Status: Completed ${winnerText}</span>`;
+                }
+
+                html += `
+                    <div class="glass-panel" style="display: flex; flex-direction: column; transition: transform 0.2s; padding: 1.5rem;">
+                        <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: var(--text-main);">${product.name}</h3>
+                        ${product.description ? `<p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">${product.description}</p>` : ''}
+
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                            <span style="color: var(--text-muted);">Base Price:</span>
+                            <span>${product.base_price} pts</span>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(0, 212, 255, 0.2);">
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--neon-secondary);">
+                                <svg class="icon small-icon"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Highest Bid:
+                            </div>
+                            <strong style="font-size: 1.2rem; color: var(--neon-primary);">${product.highest_bid} pts</strong>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 5px; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px;">
+                            <span><strong>Starts:</strong> ${new Date(product.start_time).toLocaleString()}</span>
+                            <span><strong>Ends:</strong> ${product.end_time ? new Date(product.end_time).toLocaleString() : 'Open Ended'}</span>
+                            ${statusMsg}
+                        </div>
+
+                        <div style="margin-top: auto;">
+                            ${actionHtml}
+                            <div id="bid-error-${product.id}" style="display: none; margin-top: 0.8rem; font-size: 0.8rem; color: var(--danger); text-align: center;"></div>
+                            <div id="bid-success-${product.id}" style="display: none; margin-top: 0.8rem; font-size: 0.8rem; color: var(--neon-primary); text-align: center;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            grid.innerHTML = html;
+        }
+
+        async function handleBidSubmit(productId, e, highestBid) {
+            e.preventDefault();
+            const inputField = document.getElementById(`bid-input-${productId}`);
+            const btn = document.getElementById(`bid-btn-${productId}`);
+            const errorDiv = document.getElementById(`bid-error-${productId}`);
+            const successDiv = document.getElementById(`bid-success-${productId}`);
+            
+            const amount = parseInt(inputField.value, 10);
+            if (isNaN(amount) || amount <= 0) return;
+
+            btn.disabled = true;
+            inputField.disabled = true;
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            try {
+                const res = await fetchAPI('/bid', {
+                    method: 'POST',
+                    body: JSON.stringify({ productId, amount })
+                });
+
+                if (res.success) {
+                    successDiv.innerText = 'Bid placed!';
+                    successDiv.style.display = 'block';
+                    inputField.value = '';
+                    
+                    // Deduct from local profile balance optionally
+                    if (currentUserProfile) {
+                        currentUserProfile.balance -= amount;
+                        localStorage.setItem('user.profile', JSON.stringify(currentUserProfile));
+                        // update navbar
+                        renderNavbar(currentUserProfile);
+                    }
+                    
+                    // Immediately refresh products
+                    loadProducts();
+                }
+            } catch (err) {
+                errorDiv.innerText = err.message || 'Bid failed';
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                inputField.disabled = false;
+                
+                setTimeout(() => {
+                    if(errorDiv) errorDiv.style.display = 'none';
+                    if(successDiv) successDiv.style.display = 'none';
+                }, 4000);
+            }
+        }
+        
+        window.handleBidSubmit = handleBidSubmit;
+    </script>
+</body>
+</html>

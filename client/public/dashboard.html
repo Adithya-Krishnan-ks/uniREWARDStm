@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniRewards - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+    <div class="app-container">
+        <main class="main-content animate-fade-in">
+            <div style="animation: fadeIn 0.5s ease-out">
+                <header style="margin-bottom: 2rem;">
+                    <h1 class="gradient-text" style="font-size: 2.5rem; margin-bottom: 0.5rem;">Dashboard</h1>
+                    <p style="color: var(--text-muted);">Welcome back, manage your points and transactions.</p>
+                </header>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                    <!-- Balance Card -->
+                    <div class="glass-panel" style="position: relative; overflow: hidden;">
+                        <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: var(--neon-primary-dim); border-radius: 50%; filter: blur(30px);"></div>
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div style="padding: 12px; background: rgba(0,255,136,0.1); border-radius: 12px; color: var(--neon-primary);">
+                                <svg class="icon"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                            </div>
+                            <h3 style="font-size: 1.2rem; color: var(--text-muted);">Current Balance</h3>
+                        </div>
+                        <p style="font-size: 3rem; font-weight: 800; font-family: Outfit; color: var(--text-main); display: flex; align-items: center; gap: 10px;">
+                            <span id="bal-amount">0</span> <span style="font-size: 1.2rem; color: var(--neon-primary);">PTS</span>
+                        </p>
+                        <div style="margin-top: 1rem; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+                                <span style="color: var(--text-muted);">Name:</span>
+                                <span style="font-weight: 500;" id="prof-name">Loading...</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+                                <span style="color: var(--text-muted);">ID:</span>
+                                <span style="font-family: monospace; font-weight: 500;" id="prof-id">Loading...</span>
+                            </div>
+                            <div id="prof-sem-container" style="display: none; align-items: center; gap: 8px; font-size: 0.9rem;">
+                                <span style="color: var(--text-muted);">Semester:</span>
+                                <span style="font-weight: 500;" id="prof-sem">Loading...</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+                                <span style="color: var(--text-muted);">Dept:</span>
+                                <span style="font-weight: 500;" id="prof-dept">Loading...</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin-top: 4px;">
+                                <span style="color: var(--text-muted);">Role:</span>
+                                <span style="color: var(--neon-secondary); font-weight: 600;" id="prof-role">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transfer Points Panel -->
+                    <div id="transfer-panel" class="glass-panel" style="display: none;">
+                        <h3 style="font-size: 1.4rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                            <svg class="icon" style="color: var(--neon-secondary);"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            Transfer Points
+                        </h3>
+
+                        <div id="error-msg" style="display: none; background: rgba(255, 51, 102, 0.1); color: var(--danger); padding: 10px; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem;"></div>
+                        <div id="success-msg" style="display: none; background: rgba(0, 255, 136, 0.1); color: var(--neon-primary); padding: 10px; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem;"></div>
+
+                        <form id="transfer-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Receiver's University ID</label>
+                                <input type="text" id="receiverId" class="input-field" placeholder="e.g. 24101342" required>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Receiver's Name</label>
+                                <input type="text" id="receiverName" class="input-field" placeholder="e.g. John Doe" required>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Amount (PTS)</label>
+                                <input type="number" id="amount" class="input-field" placeholder="0" min="1" required>
+                            </div>
+                            <button id="transfer-btn" class="btn-primary" type="submit" style="margin-top: 0.5rem;">
+                                Send Points
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Pending Panel -->
+                    <div id="pending-panel" class="glass-panel" style="display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                        <svg class="icon" style="width: 48px; height: 48px; color: orange; margin-bottom: 1rem; opacity: 0.8;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <h3 style="color: orange;">Account Pending Approval</h3>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem; max-width: 300px;">
+                            Your account is currently pending approval from an administrator. You cannot transfer points at this time.
+                        </p>
+                    </div>
+
+                    <!-- Not Student Panel -->
+                    <div id="not-student-panel" class="glass-panel" style="display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                        <svg class="icon" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem; opacity: 0.5;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <h3 style="color: var(--text-muted);">Transfers not available</h3>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">Only students can initiate point transfers.</p>
+                    </div>
+
+                    <!-- My Winnings Panel -->
+                    <div id="winnings-panel" class="glass-panel" style="display: none; grid-column: 1 / -1;">
+                        <h3 style="font-size: 1.4rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                            <svg class="icon" style="color: var(--neon-primary);"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                            My Winnings
+                        </h3>
+                        <div id="winnings-content">
+                            <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">
+                                Loading winnings...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const profile = await checkAuth();
+            if (!profile) return;
+            
+            // Populate profile data
+            document.getElementById('bal-amount').innerText = profile.balance || 0;
+            document.getElementById('prof-name').innerText = profile.name || 'Not provided';
+            document.getElementById('prof-id').innerText = profile.student_id || 'N/A';
+            document.getElementById('prof-dept').innerText = profile.department || 'Not provided';
+            document.getElementById('prof-role').innerText = profile.role.toUpperCase();
+            
+            if (profile.role === 'student') {
+                document.getElementById('prof-sem-container').style.display = 'flex';
+                document.getElementById('prof-sem').innerText = profile.semester || 'N/A';
+                
+                document.getElementById('winnings-panel').style.display = 'block';
+                fetchWinnings();
+                
+                if (profile.status === 'approved') {
+                    document.getElementById('transfer-panel').style.display = 'block';
+                } else {
+                    document.getElementById('pending-panel').style.display = 'flex';
+                }
+            } else {
+                document.getElementById('not-student-panel').style.display = 'flex';
+            }
+
+            // Handle Transfer Form
+            document.getElementById('transfer-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('transfer-btn');
+                const errorMsg = document.getElementById('error-msg');
+                const successMsg = document.getElementById('success-msg');
+                
+                const receiverId = document.getElementById('receiverId').value;
+                const receiverName = document.getElementById('receiverName').value;
+                const amount = document.getElementById('amount').value;
+                
+                btn.disabled = true;
+                btn.innerText = 'Processing...';
+                errorMsg.style.display = 'none';
+                successMsg.style.display = 'none';
+                
+                try {
+                    const amtNum = parseInt(amount, 10);
+                    if (isNaN(amtNum) || amtNum <= 0) throw new Error("Amount must be a positive number");
+
+                    const res = await fetchAPI('/transfer', {
+                        method: 'POST',
+                        body: JSON.stringify({ studentId: receiverId, receiverName: receiverName, amount: amtNum })
+                    });
+
+                    if (res.success) {
+                        successMsg.innerText = 'Transfer successful!';
+                        successMsg.style.display = 'block';
+                        document.getElementById('transfer-form').reset();
+                        
+                        // Update balance
+                        const newProfileStr = localStorage.getItem('user.profile');
+                        if (newProfileStr) {
+                            const newProfile = JSON.parse(newProfileStr);
+                            newProfile.balance -= amtNum;
+                            localStorage.setItem('user.profile', JSON.stringify(newProfile));
+                            document.getElementById('bal-amount').innerText = newProfile.balance;
+                        }
+                    }
+                } catch (err) {
+                    errorMsg.innerText = err.message || 'Transfer failed';
+                    errorMsg.style.display = 'block';
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = 'Send Points';
+                }
+            });
+            
+            async function fetchWinnings() {
+                try {
+                    const res = await fetchAPI('/products/won');
+                    const content = document.getElementById('winnings-content');
+                    
+                    if (res.success) {
+                        const winnings = res.data;
+                        if (winnings.length === 0) {
+                            content.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">You haven't won any auctions yet. Head over to the Marketplace to start bidding!</p>`;
+                        } else {
+                            let html = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">`;
+                            winnings.forEach(w => {
+                                html += `
+                                    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 1rem; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.5rem;">
+                                        <h4 style="font-size: 1.1rem; color: var(--text-main);">${w.name}</h4>
+                                        <div style="font-size: 0.85rem; color: var(--text-muted);">Winning Bid: <span style="color: var(--neon-primary); font-weight: bold;">${w.highest_bid} PTS</span></div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Won on: ${new Date(w.end_time).toLocaleDateString()}</div>
+                                    </div>
+                                `;
+                            });
+                            html += `</div>`;
+                            content.innerHTML = html;
+                        }
+                    }
+                } catch (err) {
+                    console.error(err);
+                    document.getElementById('winnings-content').innerHTML = `<p style="color: var(--danger); font-size: 0.9rem; text-align: center; padding: 2rem 0;">Failed to load winnings.</p>`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

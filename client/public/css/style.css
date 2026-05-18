@@ -1,0 +1,189 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg-dark: #0a0a0f;
+  --bg-panel: rgba(20, 20, 25, 0.7);
+  --neon-primary: #00ff88;
+  --neon-primary-dim: rgba(0, 255, 136, 0.15);
+  --neon-secondary: #00d4ff;
+  --text-main: #ffffff;
+  --text-muted: #8a8d9b;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --danger: #ff3366;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(0, 255, 136, 0.05), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(0, 212, 255, 0.05), transparent 25%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: var(--neon-secondary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  color: var(--neon-primary);
+  text-shadow: 0 0 10px var(--neon-primary-dim);
+}
+
+button {
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+  color: #000;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px var(--neon-primary-dim);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: var(--neon-secondary);
+}
+
+.input-field {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.input-field:focus {
+  border-color: var(--neon-primary);
+  box-shadow: 0 0 0 2px var(--neon-primary-dim);
+  outline: none;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.nav-link {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.nav-link.active, .nav-link:hover {
+  color: var(--text-main);
+}

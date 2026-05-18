@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniRewards - Admin Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+        .small-icon {
+            width: 16px;
+            height: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        th {
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-btn {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+    <div class="app-container">
+        <main class="main-content animate-fade-in">
+            <div style="animation: fadeIn 0.5s ease-out">
+                <header style="margin-bottom: 2rem; display: flex; align-items: center; gap: 15px;">
+                    <svg class="icon" style="width: 36px; height: 36px; color: var(--danger);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <div>
+                        <h1 class="gradient-text" style="font-size: 2.5rem; margin-bottom: 0.2rem;">Admin Dashboard</h1>
+                        <p style="color: var(--text-muted);">Manage users, approvals, marketplace, and allocations.</p>
+                    </div>
+                </header>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                    <button class="btn-primary tab-btn" id="tab-users" onclick="switchTab('users')">
+                        Manage Users
+                    </button>
+                    <button class="btn-secondary tab-btn" id="tab-products" onclick="switchTab('products')">
+                        Marketplace
+                    </button>
+                    <button class="btn-secondary tab-btn" id="tab-allocations" onclick="switchTab('allocations')">
+                        Allocations
+                    </button>
+                    <button class="btn-secondary tab-btn" id="tab-rules" onclick="switchTab('rules')">
+                        Allocation Rules
+                    </button>
+                    <button class="btn-secondary tab-btn" id="tab-winners" onclick="switchTab('winners')">
+                        Winners
+                    </button>
+                </div>
+
+                <div id="loading-indicator" style="text-align: center; padding: 3rem; display: none;">Loading data...</div>
+
+                <div id="content-container" class="glass-panel" style="overflow-x: auto;">
+                    <!-- dynamic content -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let currentTab = 'users';
+        let stateData = { users: [], products: [], allocations: [], winners: [], rules: [] };
+        let editingPointsUserId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const profile = await checkAuth(['admin']);
+            if (!profile) return;
+            
+            loadData('users');
+        });
+
+        function switchTab(tab) {
+            document.getElementById(`tab-${currentTab}`).className = 'btn-secondary tab-btn';
+            document.getElementById(`tab-${tab}`).className = 'btn-primary tab-btn';
+            currentTab = tab;
+            loadData(tab);
+        }
+
+        async function loadData(tab) {
+            document.getElementById('loading-indicator').style.display = 'block';
+            document.getElementById('content-container').style.display = 'none';
+            
+            try {
+                if (tab === 'users') {
+                    const res = await fetchAPI('/admin/users');
+                    if (res.success) stateData.users = res.data;
+                    renderUsers();
+                } else if (tab === 'products') {
+                    const res = await fetchAPI('/products');
+                    if (res.success) stateData.products = res.products;
+                    renderProducts();
+                } else if (tab === 'allocations') {
+                    const res = await fetchAPI('/admin/allocations');
+                    if (res.success) stateData.allocations = res.data;
+                    renderAllocations();
+                } else if (tab === 'winners') {
+                    const res = await fetchAPI('/admin/winners');
+                    if (res.success) stateData.winners = res.data;
+                    renderWinners();
+                } else if (tab === 'rules') {
+                    const res = await fetchAPI('/rules');
+                    if (res.success) stateData.rules = res.data;
+                    renderRules();
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('content-container').innerHTML = `<p style="color:red">Error loading data</p>`;
+            } finally {
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('content-container').style.display = 'block';
+            }
+        }
+
+        // Action Handlers
+        window.handleUpdateStatus = async (userId, status) => {
+            try {
+                const res = await fetchAPI('/admin/users/status', {
+                    method: 'PUT',
+                    body: JSON.stringify({ userId, status })
+                });
+                if (res.success) {
+                    stateData.users = stateData.users.map(u => u.id === userId ? { ...u, status } : u);
+                    renderUsers();
+                }
+            } catch (err) { alert('Status update failed'); }
+        };
+
+        window.setEditingPoints = (userId) => {
+            editingPointsUserId = userId;
+            renderUsers();
+        };
+
+        window.handleUpdatePoints = async (userId) => {
+            const input = document.getElementById(`points-input-${userId}`);
+            const balance = parseInt(input.value, 10);
+            if (isNaN(balance) || balance < 0) return alert('Invalid points');
+
+            try {
+                const res = await fetchAPI('/admin/users/points', {
+                    method: 'PUT',
+                    body: JSON.stringify({ userId, balance })
+                });
+                if (res.success) {
+                    stateData.users = stateData.users.map(u => u.id === userId ? { ...u, balance } : u);
+                    editingPointsUserId = null;
+                    renderUsers();
+                }
+            } catch (err) { alert('Points update failed'); }
+        };
+
+        window.handleAddProduct = async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('prod-name').value;
+            const desc = document.getElementById('prod-desc').value;
+            const price = document.getElementById('prod-price').value;
+            const start = document.getElementById('prod-start').value;
+            const end = document.getElementById('prod-end').value;
+
+            try {
+                const res = await fetchAPI('/admin/products', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name, description: desc, base_price: parseInt(price, 10),
+                        start_time: new Date(start).toISOString(),
+                        end_time: end ? new Date(end).toISOString() : null
+                    })
+                });
+                if (res.success) {
+                    stateData.products.unshift(res.data);
+                    alert('Product added');
+                    renderProducts();
+                }
+            } catch (err) { alert('Failed to add product'); }
+        };
+
+        window.handleDeclareWinner = async (productId, winnerId) => {
+            if (!winnerId) {
+                if (!window.confirm('There are no bids on this product. Are you sure you want to close it without a winner?')) return;
+            } else {
+                if (!window.confirm('Are you sure you want to end bidding and declare the current highest bidder as the winner?')) return;
+            }
+
+            try {
+                const res = await fetchAPI('/admin/products/winner', {
+                    method: 'POST',
+                    body: JSON.stringify({ productId, winnerId: winnerId || null })
+                });
+                if (res.success) {
+                    alert(res.message);
+                    loadData('products');
+                }
+            } catch (err) { alert('Action failed'); }
+        };
+
+        // Render Functions
+        function renderUsers() {
+            let html = `<table><thead><tr><th>Role</th><th>University ID</th><th>Points</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+            stateData.users.forEach(u => {
+                const roleBg = u.role === 'admin' ? 'rgba(255,51,102,0.1)' : u.role === 'professor' ? 'rgba(0,184,255,0.1)' : 'rgba(0,255,136,0.1)';
+                const roleColor = u.role === 'admin' ? 'var(--danger)' : u.role === 'professor' ? '#00b8ff' : 'var(--neon-primary)';
+                const statusColor = u.status === 'approved' ? 'var(--neon-primary)' : u.status === 'pending' ? 'orange' : 'var(--danger)';
+
+                let pointsHtml = '';
+                if (u.role === 'admin') {
+                    pointsHtml = `<span style="color: var(--text-muted)">N/A</span>`;
+                } else if (editingPointsUserId === u.id) {
+                    pointsHtml = `
+                        <div style="display: flex; gap: 5px;">
+                            <input type="number" id="points-input-${u.id}" class="input-field" style="width: 80px; padding: 4px;" value="${u.balance}">
+                            <button class="btn-primary" style="padding: 4px 8px;" onclick="handleUpdatePoints('${u.id}')">✓</button>
+                            <button class="btn-secondary" style="padding: 4px 8px;" onclick="setEditingPoints(null)">✕</button>
+                        </div>
+                    `;
+                } else {
+                    pointsHtml = `
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-weight: bold;">${u.balance}</span>
+                            <button style="background: none; border: none; color: var(--text-muted); cursor: pointer;" onclick="setEditingPoints('${u.id}')">✎</button>
+                        </div>
+                    `;
+                }
+
+                let actionsHtml = '';
+                if (u.status === 'pending') {
+                    actionsHtml = `
+                        <button class="btn-primary" style="padding: 6px; margin-right: 5px;" onclick="handleUpdateStatus('${u.id}', 'approved')" title="Approve">✓</button>
+                        <button class="btn-secondary" style="padding: 6px; border-color: var(--danger); color: var(--danger);" onclick="handleUpdateStatus('${u.id}', 'rejected')" title="Reject">✕</button>
+                    `;
+                }
+
+                html += `
+                    <tr>
+                        <td><span style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; background: ${roleBg}; color: ${roleColor}">${u.role.toUpperCase()}</span></td>
+                        <td style="font-family: monospace;">${u.student_id || '-'}</td>
+                        <td>${pointsHtml}</td>
+                        <td><span style="color: ${statusColor}">${u.status}</span></td>
+                        <td style="display: flex; gap: 8px;">${actionsHtml}</td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('content-container').innerHTML = html;
+        }
+
+        const getLocalDatetimeStr = (offsetHours = 0) => {
+            const d = new Date(); d.setHours(d.getHours() + offsetHours);
+            const tzOffset = d.getTimezoneOffset() * 60000;
+            return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+        };
+        window.setDateTime = (id, offset) => document.getElementById(id).value = getLocalDatetimeStr(offset);
+
+        function renderProducts() {
+            let html = `
+                <form onsubmit="handleAddProduct(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; margin-bottom: 2rem; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <div><label style="font-size: 0.8rem;">Name</label><input type="text" id="prod-name" class="input-field" required></div>
+                    <div style="grid-column: span 2;"><label style="font-size: 0.8rem;">Description</label><input type="text" id="prod-desc" class="input-field" required></div>
+                    <div><label style="font-size: 0.8rem;">Min Bid</label><input type="number" id="prod-price" class="input-field" required min="1"></div>
+                    <div>
+                        <label style="font-size: 0.8rem; display: flex; justify-content: space-between;">Start Time
+                            <button type="button" onclick="setDateTime('prod-start', 0)" style="background:none; border:none; color:var(--neon-primary); cursor:pointer; font-size:0.7rem;">Now</button>
+                        </label>
+                        <input type="datetime-local" id="prod-start" class="input-field" required value="${getLocalDatetimeStr(0)}">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; display: flex; justify-content: space-between;">End Time
+                            <div style="display:flex; gap:5px;">
+                                <button type="button" onclick="setDateTime('prod-end', 24)" style="background:none; border:none; color:var(--neon-primary); cursor:pointer; font-size:0.7rem;">+1D</button>
+                            </div>
+                        </label>
+                        <input type="datetime-local" id="prod-end" class="input-field" value="${getLocalDatetimeStr(24)}">
+                    </div>
+                    <button type="submit" class="btn-primary" style="padding: 12px;">Add</button>
+                </form>
+                <table>
+                    <thead><tr><th>Product</th><th>Highest Bid</th><th>End Time</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+            `;
+            stateData.products.forEach(p => {
+                let actionHtml = '';
+                if (p.status === 'active') {
+                    const btnText = p.highest_bidder_id ? 'End & Declare Winner' : 'Close Product';
+                    const winnerArg = p.highest_bidder_id ? `'${p.highest_bidder_id}'` : `null`;
+                    actionHtml = `<button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="handleDeclareWinner('${p.id}', ${winnerArg})">${btnText}</button>`;
+                }
+
+                html += `
+                    <tr>
+                        <td>${p.name}</td>
+                        <td style="color: var(--neon-primary); font-weight: bold;">${p.highest_bid}</td>
+                        <td style="font-size: 0.9rem;">${p.end_time ? new Date(p.end_time).toLocaleString() : 'Open'}</td>
+                        <td>${p.status}</td>
+                        <td>${actionHtml}</td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('content-container').innerHTML = html;
+        }
+
+        function renderAllocations() {
+            let html = `<table><thead><tr><th>Date</th><th>Professor</th><th>Student</th><th>Amount</th><th>Reason</th></tr></thead><tbody>`;
+            stateData.allocations.forEach(a => {
+                html += `
+                    <tr>
+                        <td style="font-size: 0.85rem; color: var(--text-muted);">${new Date(a.created_at).toLocaleString()}</td>
+                        <td>${a.professor?.student_id || 'Admin'}</td>
+                        <td>${a.student?.student_id || 'Unknown'}</td>
+                        <td style="color: var(--neon-primary); font-weight: bold;">+${a.amount}</td>
+                        <td style="font-style: italic; color: var(--text-muted);">${a.reason}</td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('content-container').innerHTML = html;
+        }
+
+        function renderWinners() {
+            let html = `<table><thead><tr><th>Product</th><th>Winner (ID)</th><th>Winning Bid</th><th>Closed Date</th></tr></thead><tbody>`;
+            if (stateData.winners.length === 0) {
+                html += `<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">No winners found yet.</td></tr>`;
+            } else {
+                stateData.winners.forEach(w => {
+                    html += `
+                        <tr>
+                            <td>${w.name}</td>
+                            <td style="font-family: monospace; color: var(--neon-secondary);">${w.winner?.student_id || 'Unknown'} <span style="font-size: 0.8rem; color: var(--text-muted);">(${w.winner?.role})</span></td>
+                            <td style="color: var(--neon-primary); font-weight: bold;">${w.highest_bid}</td>
+                            <td style="font-size: 0.9rem;">${new Date(w.end_time).toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+            }
+            html += `</tbody></table>`;
+            document.getElementById('content-container').innerHTML = html;
+        }
+
+        window.handleAddRule = async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('rule-title').value;
+            const desc = document.getElementById('rule-desc').value;
+            const points = document.getElementById('rule-points').value;
+
+            try {
+                const res = await fetchAPI('/admin/rules', {
+                    method: 'POST',
+                    body: JSON.stringify({ title, description: desc, points: parseInt(points, 10) })
+                });
+                if (res.success) {
+                    stateData.rules.push(res.data);
+                    alert('Rule added');
+                    renderRules();
+                }
+            } catch (err) { alert('Failed to add rule'); }
+        };
+
+        window.handleDeleteRule = async (ruleId) => {
+            if (!window.confirm('Are you sure you want to delete this rule?')) return;
+
+            try {
+                const res = await fetchAPI(`/admin/rules/${ruleId}`, { method: 'DELETE' });
+                if (res.success) {
+                    stateData.rules = stateData.rules.filter(r => r.id !== ruleId);
+                    renderRules();
+                }
+            } catch (err) { alert('Failed to delete rule'); }
+        };
+
+        function renderRules() {
+            let html = `
+                <form onsubmit="handleAddRule(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; margin-bottom: 2rem; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <div><label style="font-size: 0.8rem;">Title</label><input type="text" id="rule-title" class="input-field" required></div>
+                    <div style="grid-column: span 2;"><label style="font-size: 0.8rem;">Description</label><input type="text" id="rule-desc" class="input-field"></div>
+                    <div><label style="font-size: 0.8rem;">Points</label><input type="number" id="rule-points" class="input-field" required min="1"></div>
+                    <button type="submit" class="btn-primary" style="padding: 12px;">Add Rule</button>
+                </form>
+                <table>
+                    <thead><tr><th>Title</th><th>Description</th><th>Points</th><th>Actions</th></tr></thead>
+                    <tbody>
+            `;
+            if (stateData.rules.length === 0) {
+                html += `<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">No rules found.</td></tr>`;
+            } else {
+                stateData.rules.forEach(r => {
+                    html += `
+                        <tr>
+                            <td style="font-weight: bold;">${r.title}</td>
+                            <td style="font-size: 0.9rem; color: var(--text-muted);">${r.description || '-'}</td>
+                            <td style="color: var(--neon-primary); font-weight: bold;">${r.points}</td>
+                            <td>
+                                <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; border-color: var(--danger); color: var(--danger);" onclick="handleDeleteRule('${r.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            html += `</tbody></table>`;
+            document.getElementById('content-container').innerHTML = html;
+        }
+    </script>
+</body>
+</html>

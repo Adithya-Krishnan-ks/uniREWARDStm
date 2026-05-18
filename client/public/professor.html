@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniRewards - Professor Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+        .student-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .student-item:hover {
+            background: rgba(0,184,255,0.05);
+        }
+        .student-item.selected {
+            border: 1px solid #00b8ff;
+            background: rgba(0,184,255,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+    <div class="app-container">
+        <main class="main-content animate-fade-in">
+            <div style="animation: fadeIn 0.5s ease-out">
+                <header style="margin-bottom: 2rem; display: flex; align-items: center; gap: 15px;">
+                    <svg class="icon" style="width: 36px; height: 36px; color: #00b8ff;"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                    <div>
+                        <h1 class="gradient-text" style="font-size: 2.5rem; margin-bottom: 0.2rem; background-image: linear-gradient(90deg, #00b8ff, #0051ff);">Professor Dashboard</h1>
+                        <p style="color: var(--text-muted);">Reward your students with points for participation and excellence.</p>
+                    </div>
+                </header>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                    
+                    <!-- Allocation Form -->
+                    <div class="glass-panel" style="height: fit-content;">
+                        <h3 style="font-size: 1.4rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                            <svg class="icon" style="color: #00b8ff;"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                            Allocate Points
+                        </h3>
+
+                        <div id="error-msg" style="display: none; background: rgba(255, 51, 102, 0.1); color: var(--danger); padding: 10px; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem;"></div>
+                        <div id="success-msg" style="display: none; background: rgba(0, 184, 255, 0.1); color: #00b8ff; padding: 10px; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem;"></div>
+
+                        <form id="allocate-form" style="display: flex; flex-direction: column; gap: 1.2rem;">
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">University ID</label>
+                                <input type="text" id="targetStudentId" class="input-field" placeholder="Select from list or enter manually" required>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Amount (PTS)</label>
+                                <input type="number" id="amount" class="input-field" placeholder="0" min="1" required>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Reason</label>
+                                <textarea id="reason" class="input-field" placeholder="e.g., Top score on the midterm exam" rows="3" style="resize: vertical;" required></textarea>
+                            </div>
+                            <button id="submit-btn" class="btn-primary" type="submit" style="background: linear-gradient(90deg, #00b8ff, #0051ff); box-shadow: 0 4px 15px rgba(0, 184, 255, 0.3);">
+                                <svg class="icon" style="width: 18px; height: 18px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                Award Points
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Students List -->
+                    <div class="glass-panel">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h3 style="font-size: 1.2rem;">Approved Students</h3>
+                            <div style="position: relative;">
+                                
+                                <input type="text" id="search" class="input-field" placeholder="Search ID..." style="padding: 8px 8px 8px 35px; font-size: 0.8rem; width: 150px;">
+                            </div>
+                        </div>
+
+                        <div id="loading-indicator" style="color: var(--text-muted); text-align: center;">Loading students...</div>
+                        
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <ul id="students-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
+                                <!-- student list items -->
+                            </ul>
+                            <p id="no-students" style="display: none; color: var(--text-muted); text-align: center; padding: 1rem;">No students found.</p>
+                        </div>
+                    </div>
+
+                    <!-- Allocation Guidelines -->
+                    <div class="glass-panel">
+                        <h3 style="font-size: 1.2rem; margin-bottom: 1.5rem;">Allocation Guidelines</h3>
+                        <div id="rules-loading" style="color: var(--text-muted); text-align: center;">Loading rules...</div>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <ul id="rules-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
+                                <!-- rules will be injected here -->
+                            </ul>
+                            <p id="no-rules" style="display: none; color: var(--text-muted); text-align: center; padding: 1rem;">No guidelines found.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let students = [];
+        let selectedStudentId = '';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const profile = await checkAuth(['professor', 'admin']);
+            if (!profile) return;
+            
+            loadStudents();
+            loadRules();
+
+            document.getElementById('search').addEventListener('input', renderStudents);
+            
+            document.getElementById('allocate-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const studentId = document.getElementById('targetStudentId').value;
+                const amount = document.getElementById('amount').value;
+                const reason = document.getElementById('reason').value;
+                
+                const btn = document.getElementById('submit-btn');
+                const errorMsg = document.getElementById('error-msg');
+                const successMsg = document.getElementById('success-msg');
+                
+                btn.disabled = true;
+                errorMsg.style.display = 'none';
+                successMsg.style.display = 'none';
+                
+                try {
+                    const amtNum = parseInt(amount, 10);
+                    if (isNaN(amtNum) || amtNum <= 0) throw new Error("Invalid amount");
+
+                    const res = await fetchAPI('/professor/allocate', {
+                        method: 'POST',
+                        body: JSON.stringify({ studentId: studentId, amount: amtNum, reason })
+                    });
+
+                    if (res.success) {
+                        successMsg.innerText = `Successfully allocated ${amtNum} points to ${studentId}`;
+                        successMsg.style.display = 'block';
+                        document.getElementById('amount').value = '';
+                        document.getElementById('reason').value = '';
+                        document.getElementById('targetStudentId').value = '';
+                        selectedStudentId = '';
+                        loadStudents(); // refresh points in the list
+                    }
+                } catch (err) {
+                    errorMsg.innerText = err.message || 'Allocation failed';
+                    errorMsg.style.display = 'block';
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+
+        async function loadRules() {
+            try {
+                const res = await fetchAPI('/rules');
+                const list = document.getElementById('rules-list');
+                const noRules = document.getElementById('no-rules');
+                
+                if (res.success && res.data.length > 0) {
+                    let html = '';
+                    res.data.forEach(rule => {
+                        html += `
+                            <li class="student-item" onclick="selectRule(${rule.points}, '${rule.title}')">
+                                <div>
+                                    <div style="font-weight: bold; color: var(--text-main); margin-bottom: 4px;">${rule.title}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">${rule.description || ''}</div>
+                                </div>
+                                <span style="color: #00b8ff; font-weight: bold; font-size: 1.1rem;">${rule.points} PTS</span>
+                            </li>
+                        `;
+                    });
+                    list.innerHTML = html;
+                    list.style.display = 'flex';
+                    noRules.style.display = 'none';
+                } else {
+                    list.style.display = 'none';
+                    noRules.style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('rules-list').innerHTML = `<p style="color:red">Failed to load rules</p>`;
+            } finally {
+                document.getElementById('rules-loading').style.display = 'none';
+            }
+        }
+
+        window.selectRule = (points, reason) => {
+            document.getElementById('amount').value = points;
+            document.getElementById('reason').value = reason;
+            
+            // Visual feedback
+            const btn = document.getElementById('submit-btn');
+            const originalBg = btn.style.background;
+            btn.style.background = 'var(--neon-primary)';
+            setTimeout(() => btn.style.background = originalBg, 300);
+        };
+
+        async function loadStudents() {
+            try {
+                const res = await fetchAPI('/professor/students');
+                if (res.success) {
+                    students = res.data;
+                    renderStudents();
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('students-list').innerHTML = `<p style="color:red">Failed to load students</p>`;
+            } finally {
+                document.getElementById('loading-indicator').style.display = 'none';
+            }
+        }
+
+        window.selectStudent = (id) => {
+            selectedStudentId = id;
+            document.getElementById('targetStudentId').value = id;
+            renderStudents(); // Re-render to update selected styling
+        };
+
+        function renderStudents() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const filtered = students.filter(s => s.student_id && s.student_id.toLowerCase().includes(search));
+            
+            const list = document.getElementById('students-list');
+            const noStudents = document.getElementById('no-students');
+            
+            if (filtered.length === 0) {
+                list.style.display = 'none';
+                noStudents.style.display = 'block';
+            } else {
+                list.style.display = 'flex';
+                noStudents.style.display = 'none';
+                
+                let html = '';
+                filtered.forEach(student => {
+                    const isSelected = selectedStudentId === student.student_id;
+                    html += `
+                        <li class="student-item ${isSelected ? 'selected' : ''}" onclick="selectStudent('${student.student_id}')">
+                            <span style="font-family: monospace; font-weight: bold;">${student.student_id || 'No ID'}</span>
+                            <span style="color: #00b8ff; font-weight: bold;">${student.balance} PTS</span>
+                        </li>
+                    `;
+                });
+                list.innerHTML = html;
+            }
+        }
+    </script>
+</body>
+</html>

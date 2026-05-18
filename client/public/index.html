@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniRewards - Authentication</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div id="navbar-container"></div>
+    <div class="app-container">
+        <main class="main-content animate-fade-in" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+            <div class="glass-panel" style="width: 100%; max-width: 400px; animation: fadeIn 0.5s ease-out">
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div style="display: inline-block; width: 48px; height: 48px; background: var(--neon-primary); border-radius: 50%; box-shadow: 0 0 20px var(--neon-primary); margin-bottom: 1rem;"></div>
+                    <h2 class="gradient-text">UniRewards</h2>
+                    <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;" id="form-subtitle">Enter your portal</p>
+                </div>
+
+                <div id="error-msg" style="display: none; background: rgba(255, 51, 102, 0.1); color: var(--danger); padding: 12px; border-radius: 8px; margin-bottom: 1rem; border: 1px solid rgba(255, 51, 102, 0.3); font-size: 0.9rem;"></div>
+                <div id="success-msg" style="display: none; background: rgba(0, 255, 136, 0.1); color: var(--neon-primary); padding: 12px; border-radius: 8px; margin-bottom: 1rem; border: 1px solid rgba(0, 255, 136, 0.3); font-size: 0.9rem;"></div>
+
+                <form id="auth-form" style="display: flex; flex-direction: column; gap: 1.2rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Email</label>
+                        <input type="email" id="email" class="input-field" placeholder="you@university.edu" required>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Password</label>
+                        <input type="password" id="password" class="input-field" placeholder="••••••••" required>
+                    </div>
+
+                    <div id="signup-fields" style="display: none; flex-direction: column; gap: 1.2rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Role</label>
+                            <select id="role" class="input-field" style="width: 100%; padding: 12px; background: rgba(0,0,0,0.2); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px;">
+                                <option value="student">Student</option>
+                                <option value="professor">Professor</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Full Name</label>
+                            <input type="text" id="name" class="input-field" placeholder="e.g. Adithya ks">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Department</label>
+                            <input type="text" id="department" class="input-field" placeholder="e.g. Information Technology">
+                        </div>
+                        <div id="semester-container">
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Semester</label>
+                            <input type="number" id="semester" class="input-field" placeholder="e.g. 4" min="1" max="10">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">University ID</label>
+                            <input type="text" id="universityId" class="input-field" placeholder="e.g. 241001">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submit-btn" class="btn-primary" style="margin-top: 0.5rem;">Sign In</button>
+                </form>
+
+                <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem;">
+                    <span style="color: var(--text-muted);" id="toggle-text">Don't have an account? </span>
+                    <button id="toggle-btn" style="background: none; color: var(--neon-secondary); border: none; cursor: pointer; font-family: inherit; font-size: 0.9rem;">Register</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let isLogin = true;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const profile = await checkAuth();
+            // If already logged in, checkAuth redirects automatically.
+            
+            const form = document.getElementById('auth-form');
+            const toggleBtn = document.getElementById('toggle-btn');
+            const roleSelect = document.getElementById('role');
+            
+            toggleBtn.addEventListener('click', () => {
+                isLogin = !isLogin;
+                document.getElementById('error-msg').style.display = 'none';
+                document.getElementById('success-msg').style.display = 'none';
+                
+                if (isLogin) {
+                    document.getElementById('form-subtitle').innerText = 'Enter your portal';
+                    document.getElementById('signup-fields').style.display = 'none';
+                    document.getElementById('submit-btn').innerText = 'Sign In';
+                    document.getElementById('toggle-text').innerText = "Don't have an account? ";
+                    toggleBtn.innerText = 'Register';
+                    
+                    document.getElementById('name').required = false;
+                    document.getElementById('department').required = false;
+                    document.getElementById('universityId').required = false;
+                    document.getElementById('semester').required = false;
+                } else {
+                    document.getElementById('form-subtitle').innerText = 'Create an account';
+                    document.getElementById('signup-fields').style.display = 'flex';
+                    document.getElementById('submit-btn').innerText = 'Sign Up';
+                    document.getElementById('toggle-text').innerText = "Already have an account? ";
+                    toggleBtn.innerText = 'Login';
+                    
+                    document.getElementById('name').required = true;
+                    document.getElementById('department').required = true;
+                    document.getElementById('universityId').required = true;
+                    if(roleSelect.value === 'student') document.getElementById('semester').required = true;
+                }
+            });
+
+            roleSelect.addEventListener('change', (e) => {
+                if (e.target.value === 'student') {
+                    document.getElementById('semester-container').style.display = 'block';
+                    document.getElementById('semester').required = true;
+                } else {
+                    document.getElementById('semester-container').style.display = 'none';
+                    document.getElementById('semester').required = false;
+                }
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const submitBtn = document.getElementById('submit-btn');
+                const errorMsg = document.getElementById('error-msg');
+                const successMsg = document.getElementById('success-msg');
+                
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Processing...';
+                errorMsg.style.display = 'none';
+                successMsg.style.display = 'none';
+
+                try {
+                    if (isLogin) {
+                        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+                        if (error) throw error;
+                        
+                        localStorage.setItem('supabase.auth.token', JSON.stringify(data.session));
+                        
+                        // Fetch profile from supabase directly
+                        const { data: profileData, error: profileError } = await window.supabaseClient
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', data.user.id)
+                            .single();
+                            
+                        if (profileError) throw profileError;
+                        
+                        localStorage.setItem('user.profile', JSON.stringify(profileData));
+                        
+                        redirectBasedOnRole(profileData.role);
+                    } else {
+                        const name = document.getElementById('name').value.trim();
+                        const department = document.getElementById('department').value.trim();
+                        const role = document.getElementById('role').value;
+                        const universityId = document.getElementById('universityId').value.trim();
+                        const semester = document.getElementById('semester').value.trim();
+                        
+                        const { error } = await window.supabaseClient.auth.signUp({
+                            email,
+                            password,
+                            options: {
+                                data: {
+                                    role: role,
+                                    student_id: universityId,
+                                    name: name,
+                                    department: department,
+                                    semester: role === 'student' ? semester : null
+                                }
+                            }
+                        });
+                        
+                        if (error) throw error;
+                        successMsg.innerText = 'Registration successful! Your account is pending admin approval.';
+                        successMsg.style.display = 'block';
+                        toggleBtn.click(); // Switch to login
+                    }
+                } catch (err) {
+                    errorMsg.innerText = err.message || 'An error occurred';
+                    errorMsg.style.display = 'block';
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = isLogin ? 'Sign In' : 'Sign Up';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
