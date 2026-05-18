@@ -88,7 +88,8 @@
         let currentTab = 'users';
         let stateData = { users: [], products: [], allocations: [], winners: [], rules: [] };
         let editingPointsUserId = null;
-
+         
+        
         document.addEventListener('DOMContentLoaded', async () => {
             const profile = await checkAuth(['admin']);
             if (!profile) return;
@@ -138,7 +139,7 @@
             }
         }
 
-        // Action Handlers
+        // Action Handlers -send API requests and update state accordingly(if approved/rejected, update user status.
         window.handleUpdateStatus = async (userId, status) => {
             try {
                 const res = await fetchAPI('/admin/users/status', {
@@ -156,7 +157,7 @@
             editingPointsUserId = userId;
             renderUsers();
         };
-
+         //update balance for a user - admin can directly set points
         window.handleUpdatePoints = async (userId) => {
             const input = document.getElementById(`points-input-${userId}`);
             const balance = parseInt(input.value, 10);
@@ -219,7 +220,7 @@
             } catch (err) { alert('Action failed'); }
         };
 
-        // Render Functions
+        // Render Functions-manage users particularly with approve/reject and points editing features
         function renderUsers() {
             let html = `<table><thead><tr><th>Role</th><th>University ID</th><th>Points</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
             stateData.users.forEach(u => {
@@ -246,7 +247,7 @@
                         </div>
                     `;
                 }
-
+                 // For pending users, show approve/reject buttons. For others, no actions available.
                 let actionsHtml = '';
                 if (u.status === 'pending') {
                     actionsHtml = `
@@ -275,7 +276,7 @@
             return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
         };
         window.setDateTime = (id, offset) => document.getElementById(id).value = getLocalDatetimeStr(offset);
-
+          // Render Functions - particularly for products with features to end bidding and declare winners
         function renderProducts() {
             let html = `
                 <form onsubmit="handleAddProduct(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; margin-bottom: 2rem; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">

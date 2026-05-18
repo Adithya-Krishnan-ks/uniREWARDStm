@@ -117,7 +117,7 @@
                     actionHtml = `<div style="padding: 10px; text-align: center; background: rgba(255,165,0,0.1); border-radius: 6px; color: orange;">Bidding has not started yet.</div>`;
                 } else if (hasEnded) {
                     actionHtml = `<div style="padding: 10px; text-align: center; background: rgba(255,51,102,0.1); border-radius: 6px; color: var(--danger);">Bidding closed and Waiting for admin to declare winner.</div>`;
-                } else if (isStudentApproved) {
+                } else if (isStudentApproved) {// Show bid form if user is an approved student and auction is active
                     actionHtml = `
                         <form onsubmit="handleBidSubmit('${product.id}', event, ${product.highest_bid})" style="display: flex; gap: 0.5rem;">
                             <input type="number" id="bid-input-${product.id}" class="input-field" placeholder=">${product.highest_bid}" style="padding: 8px 12px; min-width: 0;" min="${product.highest_bid + 1}">
@@ -134,7 +134,7 @@
                 let statusMsg = '';
                 if (product.status === 'completed') {
                     const winnerText = product.winner_id === currentUserProfile?.id ? '(You Won!)' : '';
-                    statusMsg = `<span style="color: var(--neon-secondary); font-weight: bold; margin-top: 5px;">🎯 Status: Completed ${winnerText}</span>`;
+                    statusMsg = `<span style="color: var(--neon-secondary); font-weight: bold; margin-top: 5px;"> Status: Completed ${winnerText}</span>`;
                 }
 
                 html += `

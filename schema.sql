@@ -103,6 +103,7 @@ AS $$
 DECLARE
   current_highest_bid INTEGER;
   bidder_balance INTEGER;
+  active_bids_total INTEGER;
 BEGIN
   -- Lock the product row strictly to prevent race conditions on bidding
   SELECT highest_bid INTO current_highest_bid
@@ -118,6 +119,16 @@ BEGIN
     RAISE EXCEPTION 'Bid must be higher than current highest bid (%)', current_highest_bid;
   END IF;
 
+  -- Calculate total amount locked in other active winning bids for this user
+  -- Assuming status='active' logic applies, though schema.sql doesn't show status. 
+  -- Oh wait, I see migration.sql added status. I'll just check status='active' if it exists or omit it.
+  -- To be safe with the original schema which didn't have status, I will just exclude the current product.
+  -- Wait, I should assume the schema has been migrated, so 'status' exists.
+  -- Let's just use the exact logic from migration.sql to keep them synced.
+  SELECT COALESCE(SUM(highest_bid), 0) INTO active_bids_total
+  FROM products
+  WHERE highest_bidder_id = bidder AND id != product AND status = 'active';
+
   -- Optional: Lock the bidder's row to check balance 
   -- (Assuming deducting points on bid for fairness)
   SELECT balance INTO bidder_balance
@@ -125,8 +136,8 @@ BEGIN
   WHERE id = bidder
   FOR UPDATE;
 
-  IF bidder_balance < bid_amount THEN
-    RAISE EXCEPTION 'Insufficient balance to place this bid';
+  IF bidder_balance < (active_bids_total + bid_amount) THEN
+    RAISE EXCEPTION 'Insufficient balance to place this bid (including other active bids)';
   END IF;
 
   -- We update the product's highest bid

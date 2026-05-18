@@ -73,6 +73,7 @@ DECLARE
   prod_start TIMESTAMP WITH TIME ZONE;
   prod_end TIMESTAMP WITH TIME ZONE;
   prod_status TEXT;
+  active_bids_total INTEGER;
 BEGIN
   -- Lock the product row strictly to prevent race conditions on bidding
   SELECT highest_bid, start_time, end_time, status 
@@ -101,14 +102,19 @@ BEGIN
     RAISE EXCEPTION 'Bid must be higher than current highest bid (%)', current_highest_bid;
   END IF;
 
+  -- Calculate total amount locked in other active winning bids for this user
+  SELECT COALESCE(SUM(highest_bid), 0) INTO active_bids_total
+  FROM products
+  WHERE highest_bidder_id = bidder AND id != product AND status = 'active';
+
   -- Lock the bidder's row to check balance 
   SELECT balance INTO bidder_balance
   FROM profiles
   WHERE id = bidder
   FOR UPDATE;
 
-  IF bidder_balance < bid_amount THEN
-    RAISE EXCEPTION 'Insufficient balance to place this bid';
+  IF bidder_balance < (active_bids_total + bid_amount) THEN
+    RAISE EXCEPTION 'Insufficient balance to place this bid (including other active bids)';
   END IF;
 
   -- Update the product's highest bid

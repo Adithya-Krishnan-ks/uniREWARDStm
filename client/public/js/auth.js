@@ -18,8 +18,8 @@ async function checkAuth(requiredRoles = []) {
     if (token) {
         try {
             // We use the backend to fetch current user profile using the token
-            // A dedicated endpoint like /api/auth/me could be used, or we just trust the local storage user object
-            // For now, let's parse local storage if we set it during login
+            // A dedicated endpoint like /api/auth/me could be used, or we just trust the local storage user object let's parse local storage if we set it during login
+            // For now
             const profileStr = localStorage.getItem('user.profile');
             if (!profileStr && !isAuthPage) {
                 localStorage.removeItem('supabase.auth.token');

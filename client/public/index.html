@@ -13,7 +13,7 @@
         <main class="main-content animate-fade-in" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
             <div class="glass-panel" style="width: 100%; max-width: 400px; animation: fadeIn 0.5s ease-out">
                 <div style="text-align: center; margin-bottom: 2rem;">
-                    <div style="display: inline-block; width: 48px; height: 48px; background: var(--neon-primary); border-radius: 50%; box-shadow: 0 0 20px var(--neon-primary); margin-bottom: 1rem;"></div>
+                    
                     <h2 class="gradient-text">UniRewards</h2>
                     <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;" id="form-subtitle">Enter your portal</p>
                 </div>
@@ -24,7 +24,7 @@
                 <form id="auth-form" style="display: flex; flex-direction: column; gap: 1.2rem;">
                     <div>
                         <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Email</label>
-                        <input type="email" id="email" class="input-field" placeholder="you@university.edu" required>
+                        <input type="email" id="email" class="input-field" placeholder="you@cusat.in" required>
                     </div>
                     <div>
                         <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Password</label>
@@ -41,19 +41,19 @@
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Full Name</label>
-                            <input type="text" id="name" class="input-field" placeholder="e.g. Adithya ks">
+                            <input type="text" id="name" class="input-field" placeholder="e.g. First Last">
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Department</label>
-                            <input type="text" id="department" class="input-field" placeholder="e.g. Information Technology">
+                            <input type="text" id="department" class="input-field" placeholder="e.g. dept name">
                         </div>
                         <div id="semester-container">
                             <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Semester</label>
-                            <input type="number" id="semester" class="input-field" placeholder="e.g. 4" min="1" max="10">
+                            <input type="number" id="semester" class="input-field" placeholder="e.g. x" min="1" max="10">
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">University ID</label>
-                            <input type="text" id="universityId" class="input-field" placeholder="e.g. 241001">
+                            <input type="text" id="universityId" class="input-field" placeholder="e.g. 200000">
                         </div>
                     </div>
 
@@ -87,7 +87,7 @@
                 isLogin = !isLogin;
                 document.getElementById('error-msg').style.display = 'none';
                 document.getElementById('success-msg').style.display = 'none';
-                
+                //to toggle between login and registration modes, we show/hide fields and change text accordingly. We also manage required attributes based on the mode and role selection.
                 if (isLogin) {
                     document.getElementById('form-subtitle').innerText = 'Enter your portal';
                     document.getElementById('signup-fields').style.display = 'none';
@@ -137,7 +137,7 @@
                 errorMsg.style.display = 'none';
                 successMsg.style.display = 'none';
 
-                try {
+                try {// For login, we authenticate and then fetch the profile directly from Supabase to ensure we have the latest data. For registration, we create the user with metadata and show a success message about pending approval.
                     if (isLogin) {
                         const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
                         if (error) throw error;

@@ -87,7 +87,7 @@
                             <h3 style="font-size: 1.2rem;">Approved Students</h3>
                             <div style="position: relative;">
                                 
-                                <input type="text" id="search" class="input-field" placeholder="Search ID..." style="padding: 8px 8px 8px 35px; font-size: 0.8rem; width: 150px;">
+                                <input type="text" id="search" class="input-field" placeholder="Search name or ID..." style="padding: 8px 8px 8px 35px; font-size: 0.8rem; width: 170px;">
                             </div>
                         </div>
 
@@ -245,7 +245,10 @@
 
         function renderStudents() {
             const search = document.getElementById('search').value.toLowerCase();
-            const filtered = students.filter(s => s.student_id && s.student_id.toLowerCase().includes(search));
+            const filtered = students.filter(s => 
+                (s.student_id && s.student_id.toLowerCase().includes(search)) ||
+                (s.name && s.name.toLowerCase().includes(search))
+            );
             
             const list = document.getElementById('students-list');
             const noStudents = document.getElementById('no-students');
@@ -260,9 +263,13 @@
                 let html = '';
                 filtered.forEach(student => {
                     const isSelected = selectedStudentId === student.student_id;
+                    const displayName = student.name || 'Unknown Name';
                     html += `
                         <li class="student-item ${isSelected ? 'selected' : ''}" onclick="selectStudent('${student.student_id}')">
-                            <span style="font-family: monospace; font-weight: bold;">${student.student_id || 'No ID'}</span>
+                            <div>
+                                <div style="font-weight: bold; color: var(--text-main); margin-bottom: 4px;">${displayName}</div>
+                                <div style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">${student.student_id || 'No ID'}</div>
+                            </div>
                             <span style="color: #00b8ff; font-weight: bold;">${student.balance} PTS</span>
                         </li>
                     `;

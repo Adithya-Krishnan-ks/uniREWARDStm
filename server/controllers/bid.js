@@ -9,6 +9,37 @@ const placeBid = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Product ID and positive amount are required' });
         }
 
+        // Backend pre-check: ensure user has enough balance considering other active bids
+        const { data: profile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('balance')
+            .eq('id', bidderId)
+            .single();
+
+        if (profileErr || !profile) {
+            return res.status(500).json({ success: false, message: 'Could not fetch user profile' });
+        }
+
+        const { data: activeWinningBids, error: bidsErr } = await supabase
+            .from('products')
+            .select('highest_bid')
+            .eq('highest_bidder_id', bidderId)
+            .eq('status', 'active')
+            .neq('id', productId);
+
+        if (bidsErr) {
+            return res.status(500).json({ success: false, message: 'Could not fetch active bids' });
+        }
+
+        const totalActiveBidsAmount = activeWinningBids ? activeWinningBids.reduce((sum, item) => sum + item.highest_bid, 0) : 0;
+
+        if (profile.balance < (totalActiveBidsAmount + amount)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Insufficient balance to place this bid (including other active bids)' 
+            });
+        }
+
         // Call the RPC function using the Service Role Key
         const { error: rpcError } = await supabase.rpc('place_bid', {
             product: productId,
