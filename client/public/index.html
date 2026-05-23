@@ -137,7 +137,10 @@
                 errorMsg.style.display = 'none';
                 successMsg.style.display = 'none';
 
-                try {// For login, we authenticate and then fetch the profile directly from Supabase to ensure we have the latest data. For registration, we create the user with metadata and show a success message about pending approval.
+                try {
+                    if (!window.supabaseClient) {
+                        throw new Error('Supabase client failed to initialize. If you are using Brave or an adblocker (e.g. uBlock Origin), please disable shields/adblocker for this site and refresh.');
+                    }
                     if (isLogin) {
                         const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
                         if (error) throw error;
