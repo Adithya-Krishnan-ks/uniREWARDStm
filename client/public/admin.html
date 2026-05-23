@@ -132,7 +132,7 @@
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('content-container').innerHTML = `<p style="color:red">Error loading data</p>`;
+                document.getElementById('content-container').innerHTML = `<p style="color:red">Error loading data: ${err.message}</p>`;
             } finally {
                 document.getElementById('loading-indicator').style.display = 'none';
                 document.getElementById('content-container').style.display = 'block';
