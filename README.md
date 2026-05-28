@@ -1,8 +1,8 @@
 # UniRewards
 
 ## Overview
-UniRewards is a full-stack point-based marketplace system designed for universities.
-It enables professors to reward students with points that can be used inside a digital marketplace. Students can transfer points to peers and participate in auctions to redeem rewards.
+UniRewards is a point-based marketplace system designed for universities.
+It enables professors to reward students with points that can be used inside a digital marketplace. Students can transfer points to peers and participate in auctions to redeem rewards.(This is base that could be designed as per users choice).
 The system implements role-based access control (RBAC) with separate workflows for students, professors, and administrators.
 
 ## Key Features
@@ -17,7 +17,7 @@ The system implements role-based access control (RBAC) with separate workflows f
 - View assigned students
 - Allocate reward points based on predefined Allocation Rules
 - Track student engagement
-- *Click-to-fill* allocation rules for faster point distribution
+- *Click-to-fill* allocation rules for faster point distribution(a Nonsql application)
 
 **Admin Features**
 - Approve or manage users
@@ -46,6 +46,7 @@ The system implements role-based access control (RBAC) with separate workflows f
 - JWT authentication
 - Row Level Security (RLS)
 - PostgreSQL RPC functions
+- Firestore
 
 ## System Architecture
 ```
@@ -93,7 +94,7 @@ PORT=5000
 ```bash
 node db/seed-admin.js
 ```
-*(This sets up the master admin account at `adminadi@ug.in` / `24101342`)*
+*(This sets up the master admin account seeded in code for simplicity(could be changed as per need))*
 
 ## Running the Project
 Because the frontend is served statically by the Node server, you only need to run the backend:
